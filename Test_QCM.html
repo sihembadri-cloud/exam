@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>:root{color-scheme:light}</style>
+<title>Test QCM</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: une colonne centrée, une question par écran, barre de progression et minuteur fixes en haut */
+:root{
+  --bg:#f4f7f9; --surface:#ffffff; --ink:#12263a; --muted:#5a6b7b; --line:#d5dee6;
+  --accent:#0b6e7f; --accent-ink:#ffffff; --accent-soft:#e0f1f4;
+  --good:#1b7f4b; --good-soft:#e2f4ea; --bad:#b3261e; --bad-soft:#fbe7e5; --warn:#a15c00; --warn-soft:#fdf0d9;
+  --font-display:'Space Grotesk','Inter',system-ui,sans-serif; --font-body:'Inter',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1a26; --surface:#15283a; --ink:#e6eef5; --muted:#9db0c1; --line:#2b4155;
+  --accent:#4fc3d4; --accent-ink:#06222a; --accent-soft:#17384a;
+  --good:#58d18e; --good-soft:#143a2a; --bad:#ff8a80; --bad-soft:#40201e; --warn:#f2b45a; --warn-soft:#3b2d12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1a26; --surface:#15283a; --ink:#e6eef5; --muted:#9db0c1; --line:#2b4155;
+  --accent:#4fc3d4; --accent-ink:#06222a; --accent-soft:#17384a;
+  --good:#58d18e; --good-soft:#143a2a; --bad:#ff8a80; --bad-soft:#40201e; --warn:#f2b45a; --warn-soft:#3b2d12; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--font-body);margin:0;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:760px;margin:0 auto;padding-block:24px 56px}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:11px 20px;font-weight:600;min-height:44px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.45;cursor:default}
+.eyebrow{font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* Accueil */
+.hero{padding-block:32px 8px}
+.hero h1{font-size:clamp(1.9rem,6vw,2.8rem);line-height:1.1;margin-block:8px 14px}
+.hero p.lead{color:var(--muted);max-width:56ch;margin:0 0 24px}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 24px;padding:0;list-style:none}
+.rules li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.rules b{display:block;font:700 1.7rem/1.1 var(--font-display);color:var(--accent);font-variant-numeric:tabular-nums}
+.rules span{font-size:.88rem;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.panel h2{font-size:1.05rem;margin-bottom:10px}
+.panel ul{margin:0 0 18px;padding-left:1.2em;color:var(--muted)}
+.panel li{margin-bottom:4px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+.field label{font-weight:600;font-size:.9rem}
+.field input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;max-width:380px}
+
+/* Barre du haut */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.count{font-family:var(--font-display);font-weight:700}
+.timer{font:600 1.05rem/1 var(--font-display);font-variant-numeric:tabular-nums;padding:8px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.timer.low{background:var(--warn-soft);color:var(--warn)}
+.timer.crit{background:var(--bad-soft);color:var(--bad)}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+
+/* Question */
+.qcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:clamp(16px,4vw,28px)}
+.qcard h2{font-size:clamp(1.15rem,3.6vw,1.45rem);line-height:1.3;margin-bottom:20px}
+.opts{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.opt{display:flex;gap:14px;align-items:flex-start;width:100%;text-align:left;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:13px 14px;min-width:0}
+.opt:hover{border-color:var(--accent)}
+.opt .k{flex:none;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font:700 .85rem var(--font-display);background:var(--surface)}
+.opt .t{min-width:0;overflow-wrap:anywhere;padding-top:2px}
+.opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt[aria-checked="true"] .k{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:20px;flex-wrap:wrap}
+.nav .right{display:flex;gap:10px;margin-left:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px;margin-top:24px}
+.grid button{height:40px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-variant-numeric:tabular-nums}
+.grid button.done{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.grid button.cur{outline:3px solid var(--accent);outline-offset:1px}
+.legend{font-size:.82rem;color:var(--muted);margin-top:10px}
+
+/* Confirmation */
+.veil{position:fixed;inset:0;z-index:20;background:rgba(10,20,30,.55);display:grid;place-items:center;padding:16px}
+.dlg{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;max-width:420px;width:100%}
+.dlg h2{font-size:1.2rem;margin-bottom:8px}
+.dlg p{color:var(--muted);margin:0 0 18px}
+.dlg .row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+
+/* Résultats */
+.score{display:flex;flex-wrap:wrap;gap:20px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:20px}
+.score .big{font:700 clamp(2.6rem,10vw,3.8rem)/1 var(--font-display);font-variant-numeric:tabular-nums}
+.score .big small{font-size:.45em;color:var(--muted)}
+.score .meta{color:var(--muted);min-width:0}
+.score .meta b{color:var(--ink)}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:600;font-size:.82rem}
+.badge.ok{background:var(--good-soft);color:var(--good)}.badge.ko{background:var(--bad-soft);color:var(--bad)}.badge.na{background:var(--warn-soft);color:var(--warn)}
+.review{display:grid;gap:12px;margin-top:16px}
+.rev{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.rev h3{font-size:1rem;line-height:1.35;margin:8px 0 10px}
+.rev ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rev li{padding:8px 10px;border-radius:8px;border:1px solid transparent;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline;overflow-wrap:anywhere}
+.rev li.right{background:var(--good-soft);border-color:var(--good)}
+.rev li.wrong{background:var(--bad-soft);border-color:var(--bad)}
+.rev li em{font-style:normal;font-size:.78rem;font-weight:600;margin-left:auto}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-block:20px 4px}
+.chk{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.92rem}
+.field.two{flex-direction:row;flex-wrap:wrap;gap:14px}
+.field.two>div{display:flex;flex-direction:column;gap:6px;flex:1 1 200px;min-width:0}
+.field input{max-width:none;width:100%}
+.err{color:var(--bad);font-size:.88rem;margin:-8px 0 14px}
+.msg{padding:10px 14px;border-radius:8px;font-size:.92rem;margin-top:12px}
+.msg.ok{background:var(--good-soft);color:var(--good)}.msg.ko{background:var(--bad-soft);color:var(--bad)}
+.who{color:var(--muted);font-size:.95rem}
+.pts{font-size:.8rem;font-weight:600;color:var(--muted)}
+.tscroll{overflow-x:auto;margin-top:8px}
+table.tt{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+table.tt th,table.tt td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.tt th{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.teacher{margin-top:20px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+const BANK = [{"q": "Que désigne l'hygiène numérique ?", "o": ["Le nettoyage physique des ordinateurs", "L'ensemble des bonnes pratiques pour protéger ses données, ses appareils et son identité en ligne", "La suppression de tous ses comptes en ligne", "L'utilisation exclusive d'un antivirus"], "a": 1}, {"q": "Quel est l'objectif principal de l'hygiène numérique ?", "o": ["Accélérer la connexion Internet", "Augmenter son nombre d'abonnés", "Réduire les risques et préserver la sécurité et la confidentialité de ses données", "Renouveler régulièrement son matériel"], "a": 2}, {"q": "L'identité numérique est :", "o": ["L'ensemble des traces et informations qui permettent d'identifier une personne en ligne", "Uniquement le mot de passe d'un compte", "L'adresse IP de l'ordinateur", "Le nom du fournisseur d'accès Internet"], "a": 0}, {"q": "Pourquoi faut-il effectuer les mises à jour des systèmes et des logiciels ?", "o": ["Pour changer l'apparence des applications", "Pour libérer de l'espace disque", "Pour afficher plus de publicités", "Pour corriger les failles de sécurité"], "a": 3}, {"q": "L'e-réputation correspond à :", "o": ["La vitesse de connexion d'un utilisateur", "L'image d'une personne ou d'une organisation telle qu'elle se forme sur Internet", "Le nombre d'e-mails reçus par jour", "La note attribuée par un antivirus"], "a": 1}, {"q": "Comment surveiller son e-réputation ?", "o": ["Ne jamais chercher son nom sur Internet", "Publier le plus d'informations personnelles possible", "Rechercher régulièrement son nom et configurer des alertes", "Utiliser le même pseudo sur tous les sites"], "a": 2}, {"q": "L'usurpation d'identité consiste à :", "o": ["Utiliser les données personnelles d'autrui sans son accord pour se faire passer pour lui", "Changer son propre mot de passe", "Sauvegarder ses fichiers sur un disque externe", "Créer un second compte avec ses propres informations"], "a": 0}, {"q": "Parmi ces données, laquelle est la plus exposée à un risque d'usurpation et de fraude ?", "o": ["Sa couleur préférée", "Sa langue de navigation", "Le nom de son navigateur", "Son numéro de carte bancaire et sa pièce d'identité"], "a": 3}, {"q": "Le hameçonnage (phishing) est :", "o": ["Une panne matérielle", "Une fraude où l'attaquant se fait passer pour un organisme de confiance afin de voler des informations", "Un logiciel de sauvegarde", "Un type de pare-feu"], "a": 1}, {"q": "Quel est un signe typique d'un e-mail de hameçonnage ?", "o": ["Un expéditeur connu et un message personnalisé", "L'absence de tout lien", "Un ton urgent ou menaçant, des fautes et une demande d'informations confidentielles", "Une signature d'entreprise"], "a": 2}, {"q": "Avant de cliquer sur un lien reçu par e-mail, que faut-il faire ?", "o": ["Survoler le lien pour voir l'adresse réelle et ne pas cliquer en cas de doute", "Cliquer pour vérifier s'il est dangereux", "Le transférer à tous ses contacts", "Répondre à l'expéditeur pour lui demander"], "a": 0}, {"q": "Votre banque vous demande par e-mail de confirmer votre mot de passe. Que faites-vous ?", "o": ["Vous répondez avec votre mot de passe", "Vous cliquez sur le lien et saisissez vos codes", "Vous transférez le message à un ami", "Vous ne répondez pas, signalez le message et contactez votre banque par un canal officiel"], "a": 3}, {"q": "Quelle est la différence entre identification et authentification ?", "o": ["Aucune, ce sont deux synonymes", "L'identification indique qui l'on prétend être, l'authentification prouve que c'est bien le cas", "L'identification prouve l'identité, l'authentification la déclare", "L'identification utilise toujours un code SMS"], "a": 1}, {"q": "Que doit-on faire sur un réseau Wi-Fi public ?", "o": ["Éviter les opérations sensibles (banque, achats) ou utiliser un VPN", "Se connecter à tous les comptes importants", "Désactiver son antivirus", "Partager sa connexion avec des inconnus"], "a": 0}, {"q": "Qu'est-ce qu'un mot de passe robuste ?", "o": ["Un prénom suivi d'une date de naissance", "Un mot courant du dictionnaire", "Le même mot de passe sur tous les comptes", "Un mot de passe long (12 caractères ou plus), mélangeant majuscules, minuscules, chiffres et symboles, et unique pour chaque compte"], "a": 3}, {"q": "Quel est le rôle des cookies ?", "o": ["Supprimer automatiquement les virus d'un ordinateur", "Accélérer le fonctionnement de l'ordinateur", "Mémoriser des informations de navigation (session, préférences, suivi publicitaire) dans de petits fichiers déposés par un site sur l'appareil", "Protéger le réseau contre les intrusions"], "a": 2}, {"q": "Pour quelle raison évalue-t-on une ressource ?", "o": ["Pour augmenter le nombre de pages consultées", "Pour s'assurer qu'elle est pertinente et fiable avant de l'utiliser", "Pour classer les sites selon leur popularité", "Pour télécharger plus rapidement les documents"], "a": 1}, {"q": "Laquelle de ces pratiques est dangereuse ?", "o": ["Utiliser le même mot de passe pour plusieurs comptes", "Activer l'authentification à double facteur", "Verrouiller sa session en quittant son poste", "Changer son mot de passe après une fuite de données"], "a": 0}, {"q": "L'authentification multifacteur (MFA) consiste à :", "o": ["Utiliser trois mots de passe identiques", "Exiger au moins deux preuves d'identité de catégories différentes (ce que l'on sait, ce que l'on possède, ce que l'on est)", "Se connecter depuis plusieurs appareils en même temps", "Changer de mot de passe chaque jour"], "a": 1}, {"q": "Quel est un exemple d'authentification à double facteur (2FA) ?", "o": ["Deux mots de passe saisis l'un après l'autre", "Un identifiant et un nom d'utilisateur", "Un mot de passe et une question sur son prénom", "Un mot de passe et un code à usage unique reçu par SMS ou généré par une application"], "a": 3}, {"q": "Une application d'authentification (authentificateur) :", "o": ["Remplace le système d'exploitation", "Sert de pare-feu", "Génère des codes temporaires utilisés comme second facteur", "Supprime les virus"], "a": 2}, {"q": "Quel facteur d'authentification correspond à « ce que l'on est » ?", "o": ["L'empreinte digitale", "Le mot de passe", "Le smartphone", "La carte à puce"], "a": 0}, {"q": "Le rôle d'un pare-feu est de :", "o": ["Supprimer tous les virus d'un ordinateur", "Accélérer la connexion Internet", "Filtrer les flux réseau entrants et sortants selon des règles pour bloquer les connexions non autorisées", "Sauvegarder automatiquement les fichiers"], "a": 2}, {"q": "Un antivirus sert à :", "o": ["Effacer l'historique de navigation", "Détecter, bloquer et supprimer les logiciels malveillants, à condition d'être mis à jour", "Créer des mots de passe", "Chiffrer les e-mails"], "a": 1}, {"q": "Pourquoi faut-il mettre à jour régulièrement son antivirus ?", "o": ["Pour qu'il affiche moins de notifications", "Pour que sa base de signatures et ses méthodes de détection reconnaissent les nouvelles menaces", "Pour libérer de l'espace disque", "Parce qu'un antivirus à jour n'a plus besoin d'analyser les fichiers"], "a": 1}, {"q": "Un virus informatique est :", "o": ["Un composant matériel défectueux", "Un logiciel de nettoyage", "Une sauvegarde corrompue", "Un programme malveillant qui s'attache à un fichier ou programme sain et se propage lorsque celui-ci est exécuté"], "a": 3}, {"q": "Qu'est-ce qui caractérise un ver (worm) ?", "o": ["Il se réplique et se propage seul à travers les réseaux, sans action de l'utilisateur", "Il a besoin qu'on ouvre un fichier pour se propager", "Il ne fonctionne que hors connexion", "Il protège le réseau"], "a": 0}, {"q": "Qu'est-ce qui distingue un ver informatique d'un virus ?", "o": ["Le ver se réplique et se propage de façon autonome via les réseaux, sans programme hôte", "Le ver est toujours inoffensif", "Le ver n'existe que sur les téléphones", "Le ver nécessite obligatoirement une clé USB"], "a": 0}, {"q": "Un cheval de Troie (trojan) est :", "o": ["Un virus qui se duplique seul", "Un pare-feu avancé", "Un programme malveillant qui se fait passer pour un logiciel légitime afin d'être installé par l'utilisateur", "Un outil de sauvegarde"], "a": 2}, {"q": "Que fait un rançongiciel (ransomware) ?", "o": ["Il affiche uniquement des publicités", "Il chiffre ou bloque les fichiers de la victime et exige une rançon pour les restituer", "Il accélère l'ordinateur", "Il met à jour le système"], "a": 1}, {"q": "Un logiciel espion (spyware) :", "o": ["Bloque les pirates", "Détruit tous les fichiers immédiatement", "Chiffre le disque dur", "Collecte discrètement des informations (frappes clavier, habitudes, identifiants) et les transmet à un tiers"], "a": 3}, {"q": "Un logiciel de publicité (adware) :", "o": ["Affiche des publicités intrusives, souvent installé avec un logiciel gratuit", "Chiffre les fichiers contre rançon", "Se propage seul sur le réseau", "Remplace l'antivirus"], "a": 0}, {"q": "À quoi sert la recherche avancée dans Google ?", "o": ["À publier des pages web", "À protéger son ordinateur", "À affiner et cibler les résultats grâce à des opérateurs et des filtres", "À supprimer des sites des résultats pour tous les internautes"], "a": 2}, {"q": "Quel est le rôle des guillemets \" \" autour d'une expression ?", "o": ["Rechercher l'expression exacte, mots dans le même ordre", "Exclure l'expression des résultats", "Rechercher uniquement dans les titres", "Traduire l'expression"], "a": 0}, {"q": "Que fait le signe moins (-) placé devant un mot, par exemple jaguar -voiture ?", "o": ["Il rend le mot obligatoire", "Il cherche des synonymes", "Il limite la recherche à un site", "Il exclut ce mot des résultats"], "a": 3}, {"q": "Quel est le rôle de l'opérateur OR (ou le symbole |) ?", "o": ["Imposer que tous les termes soient présents", "Afficher les résultats contenant l'un ou l'autre des termes", "Exclure un terme", "Limiter la recherche à un type de fichier"], "a": 1}, {"q": "Que fait l'opérateur site: , par exemple hameçonnage site:cnil.fr ?", "o": ["Limiter la recherche aux pages d'un site ou d'un domaine précis", "Trouver des sites similaires", "Exclure un site des résultats", "Afficher la date de création du site"], "a": 0}, {"q": "Que fait l'opérateur filetype: , par exemple filetype:pdf ?", "o": ["Trouver les pages écrites dans un format de langue précis", "Trier les résultats par date", "Limiter les résultats à un type de fichier (PDF, DOCX, PPTX...)", "Vérifier si un fichier contient un virus"], "a": 2}, {"q": "Que fait l'opérateur intitle: , par exemple intitle:cybersécurité ?", "o": ["Rechercher le mot dans l'adresse du site", "Rechercher le mot dans le texte uniquement", "Rechercher le mot dans les images", "Rechercher les pages dont le titre contient le mot"], "a": 3}, {"q": "Quel est le rôle de l'astérisque (*) dans une recherche entre guillemets, par exemple \"la sécurité * est\" ?", "o": ["Exclure un mot", "Remplacer un ou plusieurs mots inconnus (joker)", "Rechercher dans un seul site", "Obtenir les résultats les plus récents"], "a": 1}, {"q": "Quelle requête permet de trouver des documents PDF sur le hameçonnage uniquement sur le site cnil.fr ?", "o": ["hameçonnage -pdf site:cnil.fr", "hameçonnage OR pdf OR cnil.fr", "hameçonnage filetype:pdf site:cnil.fr", "intitle:pdf \"cnil.fr\" hameçonnage -site"], "a": 2}, {"q": "La pertinence d'une ressource est :", "o": ["Son niveau de popularité sur les réseaux sociaux", "L'adéquation entre son contenu et le besoin ou la question de recherche", "Le nombre de pages qu'elle contient", "Sa position dans les résultats de recherche"], "a": 1}, {"q": "Se demander quel est l'objectif d'une ressource, c'est se demander :", "o": ["Ce que l'auteur cherche à faire : informer, vendre, convaincre, divertir ?", "Combien de personnes l'ont partagée", "Quelle est sa taille en Mo", "Dans quelle langue elle a été traduite"], "a": 0}, {"q": "Évaluer la fiabilité d'une ressource, c'est vérifier :", "o": ["Qu'elle comporte beaucoup d'images", "Qu'elle apparaît en premier sur Google", "Qu'elle est gratuite", "Que les informations sont exactes, sourcées, vérifiables, recoupées et à jour"], "a": 3}, {"q": "La finalité d'une ressource correspond :", "o": ["Au nombre de ses visiteurs", "À son format de fichier", "Au but dans lequel elle a été créée (informer, promouvoir, persuader, divertir)", "À sa date de dernière modification"], "a": 2}, {"q": "Pourquoi faut-il identifier l'auteur d'une ressource ?", "o": ["Pour connaître sa compétence, sa légitimité et l'organisme qu'il représente", "Pour connaître son adresse personnelle", "Pour savoir combien il gagne", "Ce critère n'a aucune importance"], "a": 0}, {"q": "Lequel de ces indices doit faire douter de la fiabilité d'une ressource ?", "o": ["Auteur identifié, date de publication et sources citées", "Auteur anonyme, aucune date, aucune source et ton sensationnaliste ou publicitaire", "Site d'une université ou d'une institution officielle", "Informations confirmées par plusieurs sources indépendantes"], "a": 1}];
+const N = 25, DURATION = 30*60, TOTAL = 20;
+const pointsOf = i => i < 15 ? 1 : 0.5;           // positions 1-15 : 1 pt, positions 16-25 : 0,5 pt
+const L = ['A','B','C','D'];
+const app = document.getElementById('app');
+let S = null, lastIds = [], tick = null;
+let who = { nom:'', prenom:'' };
+let DL = null, DBc = null, UID = null, TEACHER = false, rows = [], unsub = null;
+const slugOf = () => (who.prenom+'_'+who.nom).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+const flagged = s => { try { return localStorage.getItem('qcm_passe_'+s)==='1'; } catch(e){ return false; } };
+const setFlag = s => { try { localStorage.setItem('qcm_passe_'+s,'1'); } catch(e){} };
+// Un étudiant = un nom. Les entrées sont rangées par compte dans resultats/<id>, sous etudiants.<nom>.
+async function priorOf(slug){
+  if (DBc && UID) { try { const sn = await DBc.doc('resultats/'+UID).get(); return sn.exists ? ((sn.data().etudiants||{})[slug] || null) : null; } catch(e){ return null; } }
+  return flagged(slug) ? {} : null;
+}
+async function saveEntry(slug, entry){
+  const ref = DBc.doc('resultats/'+UID), body = { uid:UID, etudiants:{ [slug]: entry } };
+  try { await ref.update(body); } catch(e){ await ref.set(body); }
+}
+
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = s => String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+const num = x => String(x).replace('.',',');
+const full = () => (who.prenom+' '+who.nom).trim();
+
+/* ---------- capacités (facultatives) ---------- */
+(async () => {
+  try { DL = await claude.use('downloads'); } catch(e){
+    // Hors claude.ai (fichier ouvert seul) : téléchargement direct du fichier Word.
+    DL = { save: async ({filename, data}) => { const a = document.createElement('a'); a.href = URL.createObjectURL(data); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); return {status:'saved'}; } };
+  }
+  try { DBc = await claude.use('db'); } catch(e){}
+  try {
+    const u = await claude.use('user');
+    if (u) { UID = await u.id(); TEACHER = !!(await u.canEdit()); }
+  } catch(e){}
+  if (S && S.done) results(); else if (!S) paintTeacher();
+  if (TEACHER && DBc) {
+    try { unsub = DBc.collection('resultats').onSnapshot(snap => { rows = snap.docs.map(d=>d.data()).filter(Boolean); if(!S) paintTeacher(); }, ()=>{}); } catch(e){}
+  }
+})();
+
+/* ---------- tirage ---------- */
+function draw(){
+  const ids = BANK.map((_,i)=>i);
+  const fresh = shuffle(ids.filter(i=>!lastIds.includes(i)));
+  const old = shuffle(ids.filter(i=>lastIds.includes(i)));
+  return shuffle(fresh.concat(old).slice(0,N));
+}
+async function start(){
+  const slug = slugOf();
+  if (!TEACHER) {
+    const prior = await priorOf(slug);
+    if (prior) {
+      const err = document.getElementById('err'), go = document.getElementById('go');
+      if (err) { err.textContent = `${full()} a déjà passé ce test${prior.note!=null?' (note : '+num(prior.note)+' / '+TOTAL+')':''}. Une seule tentative est autorisée. Demandez une remise à zéro à l'enseignant.`; err.hidden = false; }
+      if (go) go.disabled = false;
+      return;
+    }
+  }
+  // Verrouille la tentative avant le début : une seule tentative par étudiant.
+  if (DBc && UID) { try { await saveEntry(slug, { nom:who.nom, prenom:who.prenom, statut:'en cours', debut:Date.now() }); } catch(e){} }
+  setFlag(slug);
+  const ids = draw(); lastIds = ids.slice();
+  S = { slug, cur:0, end:Date.now()+DURATION*1000, t0:Date.now(), done:false, sent:false, att:Date.now().toString(36),
+    qs: ids.map(id => { const q = BANK[id];
+      const order = shuffle([0,1,2,3]);
+      return { id, q:q.q, opts:order.map(i=>q.o[i]), good:order.indexOf(q.a), pick:null }; }) };
+  clearInterval(tick); tick = setInterval(onTick,250);
+  renderQ(); window.scrollTo(0,0);
+}
+const remaining = () => Math.max(0, Math.ceil((S.end-Date.now())/1000));
+function onTick(){
+  const r = remaining(), el = document.getElementById('timer');
+  if (el){ el.textContent = fmt(r); el.className = 'timer'+(r<=60?' crit':r<=300?' low':''); }
+  if (r<=0 && !S.done) finish(true);
+}
+
+/* ---------- accueil ---------- */
+function home(){
+  clearInterval(tick); S = null;
+  app.innerHTML = `
+  <section class="hero">
+    <div class="eyebrow">Évaluation en ligne</div>
+    <h1>Test QCM</h1>
+    <p class="lead">Hygiène numérique, authentification, logiciels malveillants, opérateurs de recherche et évaluation des ressources.</p>
+    <ul class="rules">
+      <li><b>${N}</b><span>questions</span></li>
+      <li><b>30 min</b><span>pour terminer le test</span></li>
+      <li><b>${TOTAL}</b><span>points au total</span></li>
+    </ul>
+    <div class="panel">
+      <h2>Vos informations</h2>
+      <div class="field two">
+        <div><label for="nom">Nom</label><input id="nom" autocomplete="family-name" value="${esc(who.nom)}"></div>
+        <div><label for="prenom">Prénom</label><input id="prenom" autocomplete="given-name" value="${esc(who.prenom)}"></div>
+      </div>
+      <div class="err" id="err" hidden>Saisissez votre nom et votre prénom pour commencer.</div>
+      <h2>Règles du test</h2>
+      <ul>
+        <li>Une seule réponse correcte par question, une question par page.</li>
+        <li>Barème : les 15 premières questions valent 1 point chacune, les 10 suivantes 0,5 point chacune (total ${TOTAL}).</li>
+        <li>Une seule tentative par étudiant. Les questions, leur ordre et l'ordre des propositions sont tirés au hasard pour chaque étudiant.</li>
+        <li>Vous pouvez revenir à une question avant de terminer. Le test s'arrête automatiquement après 30 minutes.</li>
+        <li>La correction et votre note s'affichent à la fin.</li>
+      </ul>
+      <button class="btn primary" id="go">Commencer le test</button>
+    </div>
+    <div class="teacher" id="teacher"></div>
+  </section>`;
+  const go = document.getElementById('go');
+  if (go) {
+    const nom = document.getElementById('nom'), pre = document.getElementById('prenom'), err = document.getElementById('err');
+    go.onclick = () => {
+      who.nom = nom.value.trim(); who.prenom = pre.value.trim();
+      if (!who.nom || !who.prenom) { err.hidden = false; (who.nom ? pre : nom).focus(); return; }
+      go.disabled = true; start();
+    };
+  }
+  paintTeacher(); window.scrollTo(0,0);
+}
+function paintTeacher(){
+  const box = document.getElementById('teacher'); if (!box || !TEACHER) return;
+  const list = [];
+  rows.forEach(r => Object.entries(r.etudiants||{}).forEach(([slug,e]) => list.push({uid:r.uid, slug, e})));
+  list.sort((a,b)=>((a.e.nom||'')+(a.e.prenom||'')).localeCompare((b.e.nom||'')+(b.e.prenom||''),'fr'));
+  box.innerHTML = `<div class="panel"><h2>Résultats reçus (espace enseignant)</h2>` + (list.length ? `
+    <div class="tscroll"><table class="tt"><thead><tr><th>Nom</th><th>Prénom</th><th>Statut</th><th>Note</th><th>Durée</th><th>Date</th><th></th></tr></thead><tbody>
+    ${list.map(({uid,slug,e})=>`<tr><td>${esc(e.nom||'')}</td><td>${esc(e.prenom||'')}</td><td>${e.note!=null?'Envoyé':'En cours ou non envoyé'}</td><td>${e.note!=null?num(e.note)+' / '+TOTAL:''}</td><td>${e.duree!=null?fmt(e.duree):''}</td><td>${esc(new Date(e.date||e.debut||0).toLocaleString('fr-FR'))}</td><td><button class="btn" data-uid="${esc(uid)}" data-slug="${esc(slug)}" style="min-height:34px;padding:6px 12px">Remettre à zéro</button></td></tr>`).join('')}
+    </tbody></table></div>` : `<p class="legend" style="margin:0">Aucun résultat reçu pour le moment. Les étudiants envoient leur note depuis la page de correction.</p>`) + `</div>`;
+  box.onclick = async ev => {
+    const b = ev.target.closest('button[data-slug]'); if (!b) return;
+    if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = 'Confirmer'; return; }
+    try {
+      const ref = DBc.doc('resultats/'+b.dataset.uid), sn = await ref.get(); if (!sn.exists) return;
+      const d = JSON.parse(JSON.stringify(sn.data())); delete (d.etudiants||{})[b.dataset.slug];
+      await ref.set(d);
+    } catch(e){ b.textContent = 'Échec, réessayez'; }
+  };
+}
+
+/* ---------- questions ---------- */
+function renderQ(){
+  const q = S.qs[S.cur], answered = S.qs.filter(x=>x.pick!==null).length, last = S.cur===N-1, p = pointsOf(S.cur);
+  app.innerHTML = `
+  <div class="top">
+    <div class="toprow"><span class="count">Question ${S.cur+1} sur ${N} <span class="pts">· ${num(p)} point${p>1?'s':''}</span></span><span class="timer" id="timer">${fmt(remaining())}</span></div>
+    <div class="bar" aria-hidden="true"><i style="width:${answered/N*100}%"></i></div>
+  </div>
+  <section class="qcard" aria-labelledby="qt">
+    <h2 id="qt">${esc(q.q)}</h2>
+    <div class="opts" role="radiogroup" aria-labelledby="qt">
+      ${q.opts.map((o,i)=>`<button class="opt" role="radio" aria-checked="${q.pick===i}" data-i="${i}"><span class="k">${L[i]}</span><span class="t">${esc(o)}</span></button>`).join('')}
+    </div>
+  </section>
+  <div class="nav">
+    <button class="btn" id="prev" ${S.cur===0?'disabled':''}>Précédente</button>
+    <div class="right">
+      ${last ? '' : '<button class="btn primary" id="next">Suivante</button>'}
+      <button class="btn ${last?'primary':''}" id="end">Terminer le test</button>
+    </div>
+  </div>
+  <div class="grid" aria-label="Aller à la question">
+    ${S.qs.map((x,i)=>`<button data-g="${i}" class="${x.pick!==null?'done':''} ${i===S.cur?'cur':''}" aria-label="Question ${i+1}${x.pick!==null?', répondue':''}" ${i===S.cur?'aria-current="true"':''}>${i+1}</button>`).join('')}
+  </div>
+  <p class="legend">${answered} réponse${answered>1?'s':''} sur ${N}. Les cases colorées sont répondues. Touches A à D pour choisir.</p>`;
+  app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{ q.pick = +b.dataset.i; renderQ(); app.querySelector('.opt[aria-checked="true"]')?.focus(); });
+  app.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ S.cur=+b.dataset.g; renderQ(); window.scrollTo(0,0); });
+  document.getElementById('prev').onclick=()=>{ if(S.cur>0){S.cur--; renderQ(); window.scrollTo(0,0);} };
+  const n=document.getElementById('next'); if(n) n.onclick=()=>{ S.cur++; renderQ(); window.scrollTo(0,0); };
+  document.getElementById('end').onclick = confirmEnd;
+}
+function confirmEnd(){
+  const left = S.qs.filter(x=>x.pick===null).length;
+  const v = document.createElement('div'); v.className='veil'; v.id='veil';
+  v.innerHTML = `<div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dt">
+    <h2 id="dt">Terminer le test ?</h2>
+    <p>${left ? `Il reste ${left} question${left>1?'s':''} sans réponse. Elles ne rapporteront aucun point.` : 'Toutes les questions ont une réponse.'} Vous ne pourrez plus modifier vos réponses.</p>
+    <div class="row"><button class="btn" id="no">Continuer</button><button class="btn primary" id="yes">Terminer</button></div></div>`;
+  document.body.appendChild(v);
+  document.getElementById('no').onclick=()=>v.remove();
+  document.getElementById('yes').onclick=()=>{v.remove(); finish(false);};
+  document.getElementById('no').focus();
+}
+
+/* ---------- résultats ---------- */
+let onlyErr = false;
+function score(){ let s=0, ok=0; S.qs.forEach((q,i)=>{ if(q.pick===q.good){ s+=pointsOf(i); ok++; } }); return {s, ok}; }
+function finish(timeout){
+  if (S.done) return; S.done = true; clearInterval(tick);
+  document.getElementById('veil')?.remove();
+  S.used = Math.min(DURATION, Math.round((Date.now()-S.t0)/1000)); S.timeout = timeout; S.date = Date.now();
+  onlyErr = false; results(); window.scrollTo(0,0);
+}
+function results(){
+  const {s, ok} = score(), none = S.qs.filter(q=>q.pick===null).length;
+  const list = S.qs.map((q,i)=>({q,i})).filter(({q})=>!onlyErr || q.pick!==q.good);
+  const canSend = !!(DBc && UID);
+  app.innerHTML = `
+  <div class="eyebrow">${S.timeout?'Temps écoulé':'Test terminé'}</div>
+  <div class="who" style="margin-top:4px">${esc(full())}</div>
+  <div class="score" style="margin-top:10px">
+    <div class="big">${num(s)}<small> / ${TOTAL}</small></div>
+    <div class="meta"><b>${ok} bonne${ok>1?'s':''} réponse${ok>1?'s':''}</b> sur ${N}${none?' · '+none+' sans réponse':''}<br>Durée : ${fmt(S.used)} sur ${fmt(DURATION)}</div>
+  </div>
+  <div class="tools">
+    ${DL ? '<button class="btn primary" id="dl">Télécharger le résultat (Word)</button>' : ''}
+    ${canSend ? `<button class="btn ${DL?'':'primary'}" id="send" ${S.sent?'disabled':''}>${S.sent?'Résultat envoyé':'Envoyer à l\'enseignant'}</button>` : ''}
+  </div>
+  <div id="status" aria-live="polite">${S.sent?'<div class="msg ok">Votre résultat a été envoyé à l\'enseignant.</div>':''}</div>
+  ${(!DL || !canSend) ? `<p class="legend">${!DL?'Le téléchargement du fichier Word n\'est pas disponible dans cette vue. ':''}${!canSend?'L\'envoi à l\'enseignant n\'est pas disponible : ouvrez le lien en étant connecté.':''}</p>` : ''}
+  <div class="tools">
+    <button class="btn" id="nextst">Étudiant suivant</button>
+    ${TEACHER ? '<button class="btn" id="again">Nouvelle tentative (test enseignant)</button>' : ''}
+    <label class="chk"><input type="checkbox" id="err" ${onlyErr?'checked':''}> Afficher seulement les erreurs</label>
+  </div>
+  <h2 style="font-size:1.2rem;margin-top:24px">Correction</h2>
+  <div class="review">
+    ${list.length ? list.map(({q,i})=>`
+    <article class="rev">
+      <span class="badge ${q.pick===null?'na':q.pick===q.good?'ok':'ko'}">Question ${i+1} · ${q.pick===null?'sans réponse':q.pick===q.good?'correcte':'incorrecte'}</span>
+      <span class="pts">${num(q.pick===q.good?pointsOf(i):0)} / ${num(pointsOf(i))} pt</span>
+      <h3>${esc(q.q)}</h3>
+      <ul>${q.opts.map((o,k)=>`<li class="${k===q.good?'right':k===q.pick?'wrong':''}"><span><b>${L[k]})</b> ${esc(o)}</span>${k===q.good?'<em>Bonne réponse</em>':k===q.pick?'<em>Votre réponse</em>':''}</li>`).join('')}</ul>
+    </article>`).join('') : '<p class="legend">Aucune erreur. Bravo.</p>'}
+  </div>`;
+  const ag=document.getElementById('again'), ns=document.getElementById('nextst');
+  if (ag) ag.onclick=start;
+  ns.onclick = () => {
+    if (!ns.dataset.sure) { ns.dataset.sure = '1'; ns.textContent = 'Confirmer : fermer la correction'; return; }
+    who = { nom:'', prenom:'' }; home();
+  };
+  document.getElementById('err').onchange=e=>{onlyErr=e.target.checked; results();};
+  document.getElementById('dl')?.addEventListener('click', download);
+  document.getElementById('send')?.addEventListener('click', send);
+}
+const status = (cls,txt) => { const el=document.getElementById('status'); if(el) el.innerHTML = `<div class="msg ${cls}">${esc(txt)}</div>`; };
+
+async function download(){
+  try {
+    const bytes = buildDocx();
+    const clean = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
+    await DL.save({ filename:`QCM_${clean(who.nom)}_${clean(who.prenom)}.docx`, data:new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}) });
+    status('ok','Le fichier Word a été enregistré.');
+  } catch(e){
+    if (e && e.code==='declined') return;
+    status('ko','Le fichier n\'a pas pu être enregistré. Réessayez.');
+  }
+}
+function record(){
+  const {s, ok} = score();
+  return { id:S.att, date:S.date, note:s, sur:TOTAL, bonnes:ok, duree:S.used,
+    details: S.qs.map((q,i)=>({n:i+1, q:q.q, rep:q.pick===null?'':q.opts[q.pick], bonne:q.opts[q.good], pts:q.pick===q.good?pointsOf(i):0})) };
+}
+async function send(){
+  const btn = document.getElementById('send'); btn.disabled = true;
+  try {
+    const r = record(); delete r.details;
+    await saveEntry(S.slug, { nom:who.nom, prenom:who.prenom, statut:'terminé', debut:S.t0, note:r.note, sur:r.sur, bonnes:r.bonnes, duree:r.duree, date:r.date });
+    S.sent = true; results();
+  } catch(e){
+    btn.disabled = false;
+    status('ko', 'L\'envoi a échoué. Votre accès au test ne permet peut-être pas l\'enregistrement. Téléchargez le fichier Word et transmettez-le à l\'enseignant.');
+  }
+}
+
+/* ---------- fichier Word (.docx) sans bibliothèque ---------- */
+function buildDocx(){
+  const x = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const run = (t,o={}) => `<w:r><w:rPr>${o.b?'<w:b/>':''}${o.color?`<w:color w:val="${o.color}"/>`:''}<w:sz w:val="${o.sz||22}"/></w:rPr><w:t xml:space="preserve">${x(t)}</w:t></w:r>`;
+  const para = (t,o={}) => `<w:p><w:pPr><w:spacing w:before="${o.before||0}" w:after="${o.after||80}"/></w:pPr>${run(t,o)}</w:p>`;
+  const cell = (t,w,o={}) => `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${o.fill?`<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>`:''}</w:tcPr><w:p><w:pPr><w:spacing w:after="0"/></w:pPr>${run(t,{...o,sz:20})}</w:p></w:tc>`;
+  const W = [600,3700,2200,2200,900];
+  const bd = ['top','left','bottom','right','insideH','insideV'].map(k=>`<w:${k} w:val="single" w:sz="4" w:space="0" w:color="999999"/>`).join('');
+  const {s, ok} = score();
+  let rowsX = `<w:tr><w:trPr><w:tblHeader/></w:trPr>${['N°','Question','Votre réponse','Bonne réponse','Points'].map((h,i)=>cell(h,W[i],{b:1,fill:'E8EEF2'})).join('')}</w:tr>`;
+  S.qs.forEach((q,i)=>{
+    const good = q.pick===q.good, fill = q.pick===null?'FDF0D9':good?'E2F4EA':'FBE7E5';
+    rowsX += `<w:tr>${[String(i+1), q.q, q.pick===null?'(sans réponse)':q.opts[q.pick], q.opts[q.good], num(good?pointsOf(i):0)+' / '+num(pointsOf(i))].map((t,k)=>cell(t,W[k],{fill:k===2?fill:undefined})).join('')}</w:tr>`;
+  });
+  const body =
+    para('Résultat du Test QCM',{b:1,sz:36,after:160}) +
+    para('Étudiant : '+full(),{b:1,sz:24}) +
+    para('Date : '+new Date(S.date).toLocaleString('fr-FR')) +
+    para('Durée : '+fmt(S.used)+' sur '+fmt(DURATION)) +
+    para('Note : '+num(s)+' / '+TOTAL,{b:1,sz:32,before:120,color:'0B6E7F'}) +
+    para(ok+' bonne'+(ok>1?'s':'')+' réponse'+(ok>1?'s':'')+' sur '+N+'. Barème : questions 1 à 15 = 1 point, questions 16 à 25 = 0,5 point.',{after:200}) +
+    para('Correction',{b:1,sz:26,after:120}) +
+    `<w:tbl><w:tblPr><w:tblW w:w="${W.reduce((a,b)=>a+b)}" w:type="dxa"/><w:tblBorders>${bd}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${W.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rowsX}</w:tbl><w:p/>`;
+  const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1000" w:right="1000" w:bottom="1000" w:left="1000" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const files = {
+    '[Content_Types].xml': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+    '_rels/.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+    'word/document.xml': doc
+  };
+  return zipStore(files);
+}
+function zipStore(files){
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  const T = new Uint32Array(256); for (let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; T[n]=c>>>0; }
+  const crc = b => { let c=0xFFFFFFFF; for (let i=0;i<b.length;i++) c = T[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+  const u16 = v => [v&255,(v>>8)&255], u32 = v => [v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255];
+  for (const [name, txt] of Object.entries(files)) {
+    const nm = enc.encode(name), d = enc.encode(txt), c = crc(d);
+    const lh = new Uint8Array([0x50,0x4b,3,4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(c), ...u32(d.length), ...u32(d.length), ...u16(nm.length), ...u16(0)]);
+    parts.push(lh, nm, d);
+    central.push(new Uint8Array([0x50,0x4b,1,2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(c), ...u32(d.length), ...u32(d.length), ...u16(nm.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(off)]), nm);
+    off += lh.length + nm.length + d.length;
+  }
+  const csize = central.reduce((a,b)=>a+b.length,0), n = Object.keys(files).length;
+  const end = new Uint8Array([0x50,0x4b,5,6, 0,0,0,0, ...u16(n), ...u16(n), ...u32(csize), ...u32(off), 0,0]);
+  const all = [...parts, ...central, end], out = new Uint8Array(all.reduce((a,b)=>a+b.length,0)); let p = 0;
+  for (const b of all){ out.set(b,p); p+=b.length; }
+  return out;
+}
+
+document.addEventListener('keydown',e=>{
+  if(!S||S.done||e.target.tagName==='INPUT'||document.getElementById('veil')) return;
+  const k=L.indexOf(e.key.toUpperCase());
+  if(k>-1 && e.key.length===1){ S.qs[S.cur].pick=k; renderQ(); app.querySelector('.opt[aria-checked="true"]')?.focus(); }
+});
+home();
+</script>
+
+</body>
+</html>
